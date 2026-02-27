@@ -69,7 +69,6 @@ Ready to contribute? Here's how to set up ``electrolyzer`` for local development
     $ cd electrolyzer
     $ python -m venv env
     $ source env/bin/activate
-    $ pip install -r requirements.txt
     $ pip install -e .
     $ pre-commit install
 
@@ -121,3 +120,8 @@ Then run::
 $ bump2version patch # possible: major / minor / patch
 $ git push
 $ git push --tags
+
+This will trigger the publishing to Test PyPI. If the action runs unsucessfully, then
+delete the tag from local and remote, restore the old version number, fix the issue, and
+try again. If the action runs successfully, then simply create the release on the github
+to trigger the publishing to PyPI.

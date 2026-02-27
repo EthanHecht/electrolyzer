@@ -39,16 +39,17 @@ classifiers = [
 
 [project.optional-dependencies]
 develop = [
+    "pre-commit",
     "pytest",
+    "pytest_mock",
     "pytest-subtests",
     "pytest-dependency",
-    "pre-commit",
-    "pytest_mock",
     "responses",
-    "jupyter-book",
-    "readthedocs-sphinx-ext",
     "Sphinx",
+    "jupyter-book",
     "sphinxcontrib-napoleon",
+    "readthedocs-sphinx-ext",
+    "bump2version",
 ]
 examples = ["jupyterlab"]
 all = ["electrolyzer[develop,examples]"]
