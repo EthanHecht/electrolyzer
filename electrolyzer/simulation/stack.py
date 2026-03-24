@@ -91,6 +91,9 @@ class Stack(FromDictMixin):
     power_input_history: NDArrayFloat = field(
         init=False, default=[], converter=array_converter
     )
+    #pointers to position in voltage history, degradation_history, and power_input_history arrays
+    i_voltage_history: int = field(init=False, default = 0)
+    i_step: int = field(init=False, default = 0)
 
     # [V] degradation from fluctuating power only
     d_f: float = field(init=False, default=0)
@@ -335,11 +338,9 @@ class Stack(FromDictMixin):
                 V_cell = 0
 
         self.cell_voltage = V_cell
-        self.voltage_history = np.append(self.voltage_history, [V_cell])
-        self.degradation_history = np.append(
-            self.degradation_history, [self.V_degradation]
-        )
-        self.power_input_history = np.append(self.power_input_history, [P_in])
+        self.voltage_history[self.i_voltage_history] = V_cell
+        self.degradation_history[self.i_step] = self.V_degradation
+        self.power_input_history[self.i_step] = P_in
         # check if it is an hour to decide whether to calculate fatigue
         hourly_temp = self.hourly_counter
         self.time += self.dt
@@ -347,9 +348,12 @@ class Stack(FromDictMixin):
         if hourly_temp != self.hourly_counter:
             self.hour_change = True
             self.voltage_signal = self.voltage_history
-            self.voltage_history = np.array([])
+            self.voltage_history = np.nan*np.zeros(min(3600//self.dt, len(self.degradation_history)-self.i_step))
+            self.i_voltage_history = -1
         else:
             self.hour_change = False
+        self.i_step += 1
+        self.i_voltage_history += 1
 
         return H2_mfr, H2_mass_out, power_left
 

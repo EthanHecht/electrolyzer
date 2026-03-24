@@ -66,6 +66,7 @@ class Supervisor(FromDictMixin):
     past_power: NDArrayFloat = field(init=False)
 
     stacks: npt.NDArray = field(init=False)
+    i_voltage_hist: int = field(init=False)
 
     def __attrs_post_init__(self) -> None:
         """
@@ -230,6 +231,17 @@ class Supervisor(FromDictMixin):
                 if self.stacks[i].stack_on or self.stacks[i].stack_waiting:
                     self.stacks[i].turn_stack_off()
 
+    def initialize_run(self, nsteps):
+        '''
+        Initializes arrays for voltage_history, degredation_history and power_input_history
+        '''
+        for stack in self.stacks:
+            stack.i_step = len(stack.degradation_history)
+            stack.i_voltage_history = 0
+            stack.voltage_history = np.nan*np.zeros(min(3600//self.dt, nsteps))
+            stack.degradation_history = np.append(stack.degradation_history, np.nan*np.zeros(nsteps))
+            stack.power_input_history = np.append(stack.power_input_history, np.nan*np.zeros(nsteps))
+    
     def run_control(self, power_in):
         """
         Inputs:
@@ -265,7 +277,6 @@ class Supervisor(FromDictMixin):
             power_left += power_left_i
 
         curtailed_wind = max(0, power_in - (np.dot(self.active, stack_power)))
-
         return H2_mass_out, H2_mass_flow_rate, power_left, curtailed_wind
 
     def power_sharing_rotation(self, power_in):

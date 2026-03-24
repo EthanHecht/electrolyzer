@@ -5,6 +5,7 @@ files.
 
 import numpy as np
 import pandas as pd
+from tqdm.notebook import tqdm as progress
 
 import electrolyzer.tools.validation as val
 from electrolyzer.simulation.supervisor import Supervisor  # ESG
@@ -29,7 +30,8 @@ def _run_electrolyzer_lcoh_opt(modeling_options, power_signal):
     max_curr_density = 0.0
 
     # Run electrolyzer simulation
-    for i in range(len(power_signal)):
+    elec_sys.initialize_run(len(power_signal))
+    for i in progress(range(len(power_signal))):
         # TODO: replace with proper logging
         # if (i % 1000) == 0:
         #     print('Progress', i)
@@ -175,5 +177,42 @@ def run_lcoh(input_modeling, power_signal, lcoe, optimize=False):
 
     if optimize:
         return [np.sum(kg_produced), max_curr_density, lcoh]
+
+    return lcoh_dict, lcoh
+
+def calc_lcoh(input_modeling, elec_sys, elec_df, lcoe):
+    err_msg = "Model input must be a str or dict object"
+    assert isinstance(input_modeling, (str, dict)), err_msg
+
+    if isinstance(input_modeling, str):
+        # Parse/validate yaml configuration
+        modeling_options = val.load_modeling_yaml(input_modeling)
+    else:
+        modeling_options = input_modeling
+
+    kg_produced = elec_df["kg_rate"].values
+    curtailment = elec_df["curtailment"].values
+    power_signal = elec_df['power_signal'].values
+
+    lcoh_options = modeling_options["electrolyzer"]["costs"]
+    lcoh_options.update(
+        {
+            "dt": elec_sys.dt,
+            "sim_length_hrs": len(power_signal) * elec_sys.dt / 3600,
+            "plant_rating_kW": elec_sys.n_stacks * elec_sys.stack_rating_kW,
+            "n_stacks": elec_sys.n_stacks,
+            "stack_rating_kW": elec_sys.stack_rating_kW,
+            "deg_state": elec_sys.deg_state,
+            "power_kW_avail": power_signal / 1000,
+            "power_kW_curtailed": curtailment / 1000,
+            "kg_produced": kg_produced,
+            "electrical_feedstock_cost": lcoe,  # [$/kWh]
+        }
+    )
+
+    cost_sys = LCOH.from_dict(lcoh_options)
+
+    # step 2: run lcoh calculations
+    lcoh_dict, lcoh = _run_lcoh_full(cost_sys)
 
     return lcoh_dict, lcoh

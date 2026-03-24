@@ -5,6 +5,7 @@ files.
 
 import numpy as np
 import pandas as pd
+from tqdm.notebook import tqdm as progress
 
 import electrolyzer.tools.validation as val
 from electrolyzer.simulation.supervisor import Supervisor
@@ -26,7 +27,8 @@ def _run_electrolyzer_full(modeling_options, power_signal):
     p_in = []
 
     # Run electrolyzer simulation
-    for i in range(len(power_signal)):
+    elec_sys.initialize_run(len(power_signal))
+    for i in progress(range(len(power_signal))):
         # TODO: replace with proper logging
         # if (i % 1000) == 0:
         #     print('Progress', i)
@@ -89,7 +91,8 @@ def _run_electrolyzer_opt(modeling_options, power_signal):
     max_curr_density = 0.0
 
     # Run electrolyzer simulation
-    for i in range(len(power_signal)):
+    elec_sys.initialize_run(len(power_signal))
+    for i in progress(range(len(power_signal))):
         # TODO: replace with proper logging
         # if (i % 1000) == 0:
         #     print('Progress', i)
